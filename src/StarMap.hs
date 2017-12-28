@@ -9,13 +9,17 @@ module StarMap
     , readMapFromFile, treeToByteString, readTreeFromFile
     , buildStarTree, sqrnorm, starLookup ) where
 
+import Prelude as P
+import Graphics.Image as I
 import Control.Monad
 import Data.Word
 import Data.Char
 import qualified Data.ByteString as B
-import Data.Serialize
+import Data.Serialize as S
 import Data.KdMap.Static
-import Linear
+import Linear as L
+
+import Util
 
 type Star = (V3 Double, (Int, Double, Double))
 type StarTree = KdMap Double (V3 Double) (Int, Double, Double)
@@ -77,10 +81,10 @@ readMapFromFile path = do
 readTreeFromFile :: FilePath -> IO (Either String StarTree)
 readTreeFromFile path = do
     ebs <- readSafe path
-    return $ fmap starColor' <$> (decode =<< ebs)
+    return $ fmap starColor' <$> (S.decode =<< ebs)
 
 treeToByteString :: StoredStarTree -> B.ByteString
-treeToByteString = encode
+treeToByteString = S.encode
 
 buildStarTree :: [StoredStar] -> StoredStarTree
 buildStarTree = build v3AsList
@@ -92,7 +96,7 @@ sqrnorm :: V3 Double -> Double
 {-# INLINE sqrnorm #-}
 sqrnorm (V3 x y z) = x*x + y*y + z*z
 
-starLookup :: StarTree -> Double -> Double -> V3 Double -> PixelRGB Double
+starLookup :: StarTree -> Double -> Double -> V3 Double -> Pixel RGB Double
 {-# INLINE starLookup #-}
 starLookup starmap intensity saturation vel = let
         -- The magnitude value tells about the intensity of the star. The
@@ -105,11 +109,11 @@ starLookup starmap intensity saturation vel = let
         -- the maximal brightness value that will be represented on the screen.
         m0 = 1350 :: Double  -- the "minimum visible" magnitude
         m1 = 1300 :: Double  -- the "double brightness" magnitude
-        m2 = 950 :: Double  -- the "maximum brightness" magnitude
-        w = 0.0005  -- width parameter of the gaussian function
-        r = 0.002  -- star sampling radius
+        m2 = 950 :: Double   -- the "maximum brightness" magnitude
+        w = 0.0005           -- width parameter of the gaussian function
+        r = 0.002            -- star sampling radius
 
-        nvel = normalize vel
+        nvel = L.normalize vel
         d2 = sqrnorm $ pos ^-^ nvel  -- the distance from the star on the
                                      -- celestial sphere surface
         (pos, (mag, hue, sat)) = nearest starmap nvel
@@ -119,5 +123,4 @@ starLookup starmap intensity saturation vel = let
         a = log 2 / (m0 - m1)
         val = (* intensity) . min 1
               . exp $ a*(m2 - fromIntegral mag) - d2/(2*w^(2 :: Int))
-    in if d2 < r*r then addAlpha (hsvToRGB (HSV hue (saturation * sat) val)) 1
-                   else RGBA 0 0 0 1
+    in toPixelRGB $ PixelHSI hue (saturation * sat) val
