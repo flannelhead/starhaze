@@ -1,6 +1,7 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
-{-# LANGUAGE StrictData #-}
-{-# LANGUAGE Strict #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE Strict               #-}
+{-# LANGUAGE StrictData           #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -9,17 +10,17 @@ module StarMap
     , readMapFromFile, treeToByteString, readTreeFromFile
     , buildStarTree, sqrnorm, starLookup ) where
 
-import Prelude as P
-import Graphics.Image as I
-import Control.Monad
-import Data.Word
-import Data.Char
-import qualified Data.ByteString as B
-import Data.Serialize as S
-import Data.KdMap.Static
-import Linear as L
+import           Control.Monad
+import qualified Data.ByteString   as B
+import           Data.Char
+import           Data.KdMap.Static
+import           Data.Serialize    as S
+import           Data.Word
+import           Graphics.Image    as I
+import           Linear            as L
+import           Prelude           as P
 
-import Util
+import           Util
 
 type Star = (V3 Double, (Int, Double, Double))
 type StarTree = KdMap Double (V3 Double) (Int, Double, Double)
@@ -107,11 +108,9 @@ starLookup starmap intensity saturation vel = let
         -- "minimum" magnitude. When the magnitude reaches m1, the brightness
         -- will be doubled. m2 is required for normalization and corresponds to
         -- the maximal brightness value that will be represented on the screen.
-        m0 = 1350 :: Double  -- the "minimum visible" magnitude
-        m1 = 1300 :: Double  -- the "double brightness" magnitude
-        m2 = 950 :: Double   -- the "maximum brightness" magnitude
-        w = 0.0005           -- width parameter of the gaussian function
-        r = 0.002            -- star sampling radius
+        max_brightness = 400 :: Double   -- the "maximum brightness" magnitude
+        dynamic = 60 :: Double
+        w = 0.005                       -- width parameter of the gaussian function
 
         nvel = L.normalize vel
         d2 = sqrnorm $ pos ^-^ nvel  -- the distance from the star on the
@@ -120,7 +119,7 @@ starLookup starmap intensity saturation vel = let
         -- Conversion from the log magnitude scale to linear brightness
         -- and a Gaussian intensity function. This determines the apparent size
         -- and brightness of the star.
-        a = log 2 / (m0 - m1)
-        val = (* intensity) . min 1
-              . exp $ a*(m2 - fromIntegral mag) - d2/(2*w^(2 :: Int))
-    in toPixelRGB $ PixelHSI hue (saturation * sat) val
+        a = log 2 / dynamic
+        val = min 1 . (* intensity)
+              . exp $ a*(max_brightness - fromIntegral mag) - d2/(2*w^(2 :: Int))
+    in toPixelRGB $ PixelHSI (hue / 360) (saturation * sat) val
