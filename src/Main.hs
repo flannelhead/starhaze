@@ -13,21 +13,21 @@ imageSize = 1600
 saturation = 0.6
 intensity = 1.0
 
-stereographicInverse (x, y) = let
-    denom = 1 / (1 + x*x + y*y)
-    x' = 2 * x * denom
-    y' = 2 * y * denom
-    z' = (x*x + y*y - 1) * denom
-  in V3 x' y' z'
+stereographicInverse :: V2 Double -> V3 Double
+stereographicInverse v@(V2 x y) = let
+    norm2 = quadrance v
+    x' = 2 * x
+    y' = 2 * y
+    z' = (norm2 - 1)
+  in V3 x' y' z' ^/ (1 + norm2)
 
 makePixel :: StarTree -> Int -> (Int, Int) -> Pixel RGB Double
 makePixel startree size (i, j) = let
     radius = fromIntegral size / (2 :: Double)
-    i' = fromIntegral i / radius - 1
-    j' = fromIntegral j / radius - 1
-    vec = stereographicInverse (j', i')
-  in if i'*i' + j'*j' <= 1 then starLookup startree intensity saturation vec
-                           else backgroundColor
+    vec2 = V2 (fromIntegral j) (fromIntegral i) ^/ radius ^-^ V2 1 1
+    vec3 = stereographicInverse vec2
+  in if quadrance vec2 <= 1 then starLookup startree intensity saturation vec3
+                            else backgroundColor
 
 main :: IO ()
 main = do

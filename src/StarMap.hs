@@ -8,11 +8,12 @@
 module StarMap
     ( Star, StarTree, StoredStarTree
     , readMapFromFile, treeToByteString, readTreeFromFile
-    , buildStarTree, sqrnorm, starLookup ) where
+    , buildStarTree, starLookup ) where
 
 import           Control.Monad
 import qualified Data.ByteString   as B
 import           Data.Char
+import           Data.Foldable
 import           Data.KdMap.Static
 import           Data.Serialize    as S
 import           Data.Word
@@ -34,11 +35,11 @@ instance Serialize (TreeNode Double (V3 Double) (Int, Char))
 -- serialize the KdMap anyway
 instance Serialize (SquaredDistanceFn Double (V3 Double)) where
     put _ = put (0 :: Word8)
-    get = skip 1 >> return (defaultSqrDist v3AsList)
+    get = skip 1 >> return (defaultSqrDist toList)
 
 instance Serialize (PointAsListFn Double (V3 Double)) where
     put _ = put (0 :: Word8)
-    get = skip 1 >> return v3AsList
+    get = skip 1 >> return toList
 
 -- Parse the star list in the binary format specified at
 -- http://tdc-www.harvard.edu/software/catalogs/ppm.entry.html
@@ -88,14 +89,7 @@ treeToByteString :: StoredStarTree -> B.ByteString
 treeToByteString = S.encode
 
 buildStarTree :: [StoredStar] -> StoredStarTree
-buildStarTree = build v3AsList
-
-v3AsList :: V3 Double -> [Double]
-v3AsList (V3 x y z) = [x, y, z]
-
-sqrnorm :: V3 Double -> Double
-{-# INLINE sqrnorm #-}
-sqrnorm (V3 x y z) = x*x + y*y + z*z
+buildStarTree = build toList
 
 starLookup :: StarTree -> Double -> Double -> V3 Double -> Pixel RGB Double
 {-# INLINE starLookup #-}
@@ -108,8 +102,8 @@ starLookup starmap intensity saturation vel = let
         w = 0.0025                       -- width parameter of the gaussian function
 
         nvel = L.normalize vel
-        d2 = sqrnorm $ pos ^-^ nvel  -- the distance from the star on the
-                                     -- celestial sphere surface
+        d2 = qd pos nvel                 -- the distance from the star on the
+                                         -- celestial sphere surface
         (pos, (mag, hue, sat)) = nearest starmap nvel
         -- Conversion from the log magnitude scale to linear brightness
         -- and a Gaussian intensity function. This determines the apparent size
