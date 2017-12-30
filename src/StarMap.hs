@@ -62,13 +62,13 @@ starColor' (mag, ch) = let (h, s) = starColor ch in (mag, h, s)
 
 -- Some nice colour values for different spectral types
 starColor :: Char -> (Double, Double)
-starColor 'O' = (227, 0.39)
-starColor 'B' = (226, 0.33)
-starColor 'A' = (224, 0.21)
-starColor 'F' = (234, 0.03)
-starColor 'G' = (32, 0.09)
-starColor 'K' = (34, 0.29)
-starColor 'M' = (34, 0.56)
+starColor 'O' = (0.631, 0.39)
+starColor 'B' = (0.628, 0.33)
+starColor 'A' = (0.622, 0.21)
+starColor 'F' = (0.650, 0.03)
+starColor 'G' = (0.089, 0.09)
+starColor 'K' = (0.094, 0.29)
+starColor 'M' = (0.094, 0.56)
 starColor _   = (0, 0)
 
 raDecToCartesian :: Double -> Double -> V3 Double
@@ -103,14 +103,9 @@ starLookup starmap intensity saturation vel = let
         -- The magnitude value tells about the intensity of the star. The
         -- brighter the star, the smaller the magnitude. These constants are
         -- used for adjusting the dynamics of the rendered celestial sphere.
-        -- We need three fixed points to determine the dynamics:
-        -- the points m0 and m1 fix the logarithmic scale. m0 is the reference
-        -- "minimum" magnitude. When the magnitude reaches m1, the brightness
-        -- will be doubled. m2 is required for normalization and corresponds to
-        -- the maximal brightness value that will be represented on the screen.
         max_brightness = 400 :: Double   -- the "maximum brightness" magnitude
-        dynamic = 60 :: Double
-        w = 0.005                       -- width parameter of the gaussian function
+        dynamic = 60 :: Double           -- "dynamic range": magnitude change that doubles intensity
+        w = 0.005                        -- width parameter of the gaussian function
 
         nvel = L.normalize vel
         d2 = sqrnorm $ pos ^-^ nvel  -- the distance from the star on the
@@ -122,4 +117,4 @@ starLookup starmap intensity saturation vel = let
         a = log 2 / dynamic
         val = min 1 . (* intensity)
               . exp $ a*(max_brightness - fromIntegral mag) - d2/(2*w^(2 :: Int))
-    in toPixelRGB $ PixelHSI (hue / 360) (saturation * sat) val
+    in toPixelRGB $ PixelHSI hue (saturation * sat) val
