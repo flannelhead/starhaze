@@ -11,15 +11,16 @@ module StarMap
     , buildStarTree, starLookup ) where
 
 import           Control.Monad
-import qualified Data.ByteString   as B
+import qualified Data.ByteString          as B
 import           Data.Char
 import           Data.Foldable
 import           Data.KdMap.Static
-import           Data.Serialize    as S
+import           Data.Serialize           as S
 import           Data.Word
-import           Graphics.Image    as I
-import           Linear            as L
-import           Prelude           as P
+import           Graphics.Image           as I
+import           Graphics.Image.Interface
+import           Linear                   as L
+import           Prelude                  as P
 
 import           Util
 
@@ -94,21 +95,23 @@ buildStarTree = build toList
 starLookup :: StarTree -> Double -> Double -> V3 Double -> Pixel RGB Double
 {-# INLINE starLookup #-}
 starLookup starmap intensity saturation vel = let
-        -- The magnitude value tells about the intensity of the star. The
-        -- brighter the star, the smaller the magnitude. These constants are
-        -- used for adjusting the dynamics of the rendered celestial sphere.
-        max_brightness = 400 :: Double   -- the "maximum brightness" magnitude
-        dynamic = 100 :: Double          -- "dynamic range": magnitude change that doubles intensity
-        w = 0.0025                       -- width parameter of the gaussian function
+    -- The magnitude value tells about the intensity of the star. The
+    -- brighter the star, the smaller the magnitude. These constants are
+    -- used for adjusting the dynamics of the rendered celestial sphere.
+    max_brightness = 400 -- the "maximum brightness" magnitude
+    dynamic = 80         -- "dynamic range": magnitude change that doubles intensity
+    w = 0.0022           -- width parameter of the gaussian function
 
-        nvel = L.normalize vel
-        d2 = qd pos nvel                 -- the distance from the star on the
-                                         -- celestial sphere surface
-        (pos, (mag, hue, sat)) = nearest starmap nvel
+    nvel = L.normalize vel
+    stars = inRadius starmap (4 * w) nvel
+
+    renderPixel (pos, (mag, hue, sat)) = let
+        d2 = qd pos nvel
+        a = log 2 / dynamic
         -- Conversion from the log magnitude scale to linear brightness
         -- and a Gaussian intensity function. This determines the apparent size
         -- and brightness of the star.
-        a = log 2 / dynamic
         val = min 1 . (* intensity)
-              . exp $ a*(max_brightness - fromIntegral mag) - d2/(2*w^(2 :: Int))
-    in toPixelRGB $ PixelHSI hue (saturation * sat) val
+            . exp $ a * (max_brightness - fromIntegral mag) - d2 / (2 * w^(2 :: Int))
+        in toPixelRGB $ PixelHSI hue (saturation * sat) val
+    in liftPx (min 1) . foldl' (liftPx2 (+)) (PixelRGB 0 0 0) $ renderPixel <$> stars

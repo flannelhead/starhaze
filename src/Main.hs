@@ -9,8 +9,8 @@ import           StarMap
 import           Util
 
 backgroundColor = PixelRGB 0 0 0
-imageSize = 1600
-saturation = 0.6
+imageSize = 3200
+saturation = 0.5
 intensity = 1.0
 
 stereographicInverse :: V2 Double -> V3 Double
