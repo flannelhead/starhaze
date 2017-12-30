@@ -9,7 +9,7 @@ import           StarMap
 import           Util
 
 backgroundColor = PixelRGB 0 0 0
-imageSize = 3200
+imageSize = 1200
 saturation = 0.5
 intensity = 1.0
 
@@ -36,5 +36,5 @@ main = do
     Right tree -> do
       let img = makeImage (imageSize, imageSize)
                 (makePixel tree imageSize) :: Image RPU RGB Double
-      writeImage "test.png" . compute $ img
+      writeImageExact PNG [] "test.png" . exchange VS . compute . toWord8I $ img
     _          -> putStrLn "Failed reading star tree"
