@@ -10,8 +10,8 @@ import           Util
 
 backgroundColor = PixelRGB 0 0 0
 imageSize = 1600
-saturation = 0.7
-intensity = 1.25
+saturation = 0.6
+intensity = 1.0
 
 stereographicInverse (x, y) = let
     denom = 1 / (1 + x*x + y*y)
