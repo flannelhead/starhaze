@@ -29,6 +29,12 @@ makePixel startree size (i, j) = let
   in if quadrance vec2 <= 1 then starLookup startree intensity saturation vec3
                             else backgroundColor
 
+sRGB :: Double -> Double
+sRGB x = let
+  a = 0.055
+  in if x < 0.0031308 then 12.92 * x
+    else (1 + a) * x ** (1.0 / 2.4) - a
+
 main :: IO ()
 main = do
   etree <- readTreeFromFile "stars.kdt"
@@ -36,5 +42,6 @@ main = do
     Right tree -> do
       let img = makeImage (imageSize, imageSize)
                 (makePixel tree imageSize) :: Image RPU RGB Double
-      writeImageExact PNG [] "test.png" . exchange VS . compute . toWord8I $ img
+      writeImageExact PNG [] "test.png" . exchange VS . compute . toWord8I
+        . I.map (fmap sRGB) $ img
     _          -> putStrLn "Failed reading star tree"
