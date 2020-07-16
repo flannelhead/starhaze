@@ -1,6 +1,5 @@
-This folder currently contains the PPM star catalog mirrored from
+Use the star catalog from this URL:
 http://tdc-www.harvard.edu/catalogs/ppm.html
-in the file ppm.tar.gz
 
 Binary header format:
 http://tdc-www.harvard.edu/catalogs/ppm.header.html
